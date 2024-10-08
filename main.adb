@@ -6,7 +6,7 @@ with Ada.Integer_Text_IO;
 with Ada.Numerics.Discrete_Random;
 
 
-procedure Simulation is
+procedure Main is
 
    ----GLOBAL VARIABLES---
 
@@ -20,11 +20,11 @@ procedure Simulation is
 
 
    --each Producer is assigned a Product that it produces
-   Product_Name: constant array (Producer_Type) of String(1 .. 8)
-     := ("Product1", "Product2", "Product3", "Product4", "Product5");
+   Product_Name: constant array (Producer_Type) of String(1 .. 6)
+     := ("Ciasto", "Sos   ", "Ser   ", "Szynka", "Ananas");
    --Assembly is a collection of products
-   Assembly_Name: constant array (Assembly_Type) of String(1 .. 9)
-     := ("Assembly1", "Assembly2", "Assembly3");
+   Assembly_Name: constant array (Assembly_Type) of String(1 .. 10)
+     := ("Weganska  ", "Hawajska  ", "Margherita");
 
 
    ----TASK DECLARATIONS----
@@ -42,7 +42,7 @@ procedure Simulation is
    end Consumer;
 
    -- Buffer receives products from Producers and delivers Assemblies to Consumers
-   task type Buffer is
+   task type Buffer is 
       -- Accept a product to the storage (provided there is a room for it)
       entry Take(Product: in Producer_Type; Number: in Integer);
       -- Deliver an assembly (provided there are enough products for it)
@@ -194,40 +194,43 @@ procedure Simulation is
       Put_Line(ESC & "[91m" & "B: Buffer started" & ESC & "[0m");
       Setup_Variables;
       loop
+         select
         -- w momencie jak jest task take wywolany--
-         accept Take(Product: in Producer_Type; Number: in Integer) do
-            if Can_Accept(Product) then
-               Put_Line(ESC & "[91m" & "B: Accepted product " & Product_Name(Product) & " number " &
-                          Integer'Image(Number)& ESC & "[0m");
-                -- tutaj do arrayu z produktami od producentow dodaje ilosc przyjeta--
-               Storage(Product) := Storage(Product) + 1;
-               --dodaje ilsoc do storage--
-               In_Storage := In_Storage + 1;
-            else
-               Put_Line(ESC & "[91m" & "B: Rejected product " & Product_Name(Product) & " number " &
-                          Integer'Image(Number)& ESC & "[0m");
-            end if;
-         end Take;
+            accept Take(Product: in Producer_Type; Number: in Integer) do
+               if Can_Accept(Product) then
+                  Put_Line(ESC & "[91m" & "B: Accepted product " & Product_Name(Product) & " number " &
+                           Integer'Image(Number)& ESC & "[0m");
+                  -- tutaj do arrayu z produktami od producentow dodaje ilosc przyjeta--
+                  Storage(Product) := Storage(Product) + 1;
+                  --dodaje ilsoc do storage--
+                  In_Storage := In_Storage + 1;
+               else
+                  Put_Line(ESC & "[91m" & "B: Rejected product " & Product_Name(Product) & " number " &
+                           Integer'Image(Number)& ESC & "[0m");
+               end if;
+            end Take;
          --wyswietlanie storage--
-         Storage_Contents;
 
-         accept Deliver(Assembly: in Assembly_Type; Number: out Integer) do
-            if Can_Deliver(Assembly) then
-               Put_Line(ESC & "[91m" & "B: Delivered assembly " & Assembly_Name(Assembly) & " number " &
-                          Integer'Image(Assembly_Number(Assembly))& ESC & "[0m");
-               for W in Producer_Type loop
-                --update ilosci skladnikow--
-                  Storage(W) := Storage(W) - Assembly_Content(Assembly, W);
-                  In_Storage := In_Storage - Assembly_Content(Assembly, W);
-               end loop;
-               --tu nie wiem czemu nie zrobiono tego assembly num od 0 a nie juz baseline to 1 ale update ile rzeczy zostalo zlozonych--
-               Number := Assembly_Number(Assembly);
-               Assembly_Number(Assembly) := Assembly_Number(Assembly) + 1;
-            else
-               Put_Line(ESC & "[91m" & "B: Lacking products for assembly " & Assembly_Name(Assembly)& ESC & "[0m");
-               Number := 0;
-            end if;
-         end Deliver;
+         or
+            accept Deliver(Assembly: in Assembly_Type; Number: out Integer) do
+               if Can_Deliver(Assembly) then
+                  Put_Line(ESC & "[91m" & "B: Delivered assembly " & Assembly_Name(Assembly) & " number " &
+                           Integer'Image(Assembly_Number(Assembly))& ESC & "[0m");
+                  for W in Producer_Type loop
+                  --update ilosci skladnikow--
+                     Storage(W) := Storage(W) - Assembly_Content(Assembly, W);
+                     In_Storage := In_Storage - Assembly_Content(Assembly, W);
+                  end loop;
+                  --tu nie wiem czemu nie zrobiono tego assembly num od 0 a nie juz baseline to 1 ale update ile rzeczy zostalo zlozonych--
+                  Number := Assembly_Number(Assembly);
+                  Assembly_Number(Assembly) := Assembly_Number(Assembly) + 1;
+               else
+                  Put_Line(ESC & "[91m" & "B: Lacking products for assembly " & Assembly_Name(Assembly)& ESC & "[0m");
+                  Number := 0;
+               end if;
+            end Deliver;
+         end select;
+
          Storage_Contents;
 
       end loop;
@@ -243,5 +246,5 @@ begin
    for J in 1 .. Number_Of_Consumers loop
       K(J).Start(J,12);
    end loop;
-end Simulation;
+end Main;
 
